@@ -8,6 +8,7 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { User } from './user.entity';
 import type { SignOptions } from 'jsonwebtoken';
+import { Env } from '../config';
 
 @Module({
   imports: [
@@ -16,9 +17,9 @@ import type { SignOptions } from 'jsonwebtoken';
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.getOrThrow<string>('JWT_SECRET'),
+        secret: config.getOrThrow<string>(Env.JWT_SECRET),
         signOptions: {
-          expiresIn: config.get<string>('JWT_EXPIRES_IN') ?? '1d',
+          expiresIn: config.get<string>(Env.JWT_EXPIRES_IN) ?? '1d',
         } as SignOptions,
       }),
     }),

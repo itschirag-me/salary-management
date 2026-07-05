@@ -10,7 +10,9 @@ import {
 import { SalariesService } from './salaries.service';
 import { CreateSalaryDto } from './dto/create-salary.dto';
 import { UpdateSalaryDto } from './dto/update-salary.dto';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Salaries')
 @Controller('salaries')
 export class SalariesController {
   constructor(private readonly salariesService: SalariesService) {}

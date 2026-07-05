@@ -6,11 +6,15 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import { QueryEmployeesDto } from './dto/query-employee.dto';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Employees')
 @Controller('employees')
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
@@ -21,9 +25,10 @@ export class EmployeesController {
   }
 
   @Get()
-  findAll() {
-    return this.employeesService.findAll();
+  findAll(@Query() query: QueryEmployeesDto) {
+    return this.employeesService.findAll(query);
   }
+
 
   @Get(':id')
   findOne(@Param('id') id: string) {

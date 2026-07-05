@@ -4,13 +4,15 @@ import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { Public } from './public.decorator';
 import { LoginDto } from './dto/login.dto';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly auth: AuthService,
     private readonly config: ConfigService,
-  ) {}
+  ) { }
 
   @Public()
   @Post('login')

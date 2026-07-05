@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import { QueryEmployeesDto } from './dto/query-employee.dto';
 
 @Injectable()
 export class EmployeesService {
@@ -8,9 +9,10 @@ export class EmployeesService {
     return 'This action adds a new employee';
   }
 
-  findAll() {
+  findAll(query?: QueryEmployeesDto) {
     return `This action returns all employees`;
   }
+
 
   findOne(id: number) {
     return `This action returns a #${id} employee`;
