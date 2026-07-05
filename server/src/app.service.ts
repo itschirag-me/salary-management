@@ -15,7 +15,7 @@ export class AppService {
         version: 'v1',
         uptime: process.uptime(),
         timestamp: new Date().toISOString(),
-      }
-    }
+      },
+    };
   }
 }

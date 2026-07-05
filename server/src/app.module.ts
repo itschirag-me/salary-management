@@ -4,6 +4,8 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 
 import { validationSchema } from 'config';
+import { EmployeesModule } from './employees/employees.module';
+import { SalariesModule } from './salaries/salaries.module';
 
 @Module({
   imports: [
@@ -11,8 +13,10 @@ import { validationSchema } from 'config';
       isGlobal: true,
       validationSchema: validationSchema,
     }),
+    EmployeesModule,
+    SalariesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}
