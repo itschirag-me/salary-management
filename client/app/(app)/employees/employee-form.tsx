@@ -16,6 +16,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 // Mirrors CreateEmployeeDto. employeeCode is omitted in edit mode (immutable).
 const baseSchema = z.object({
@@ -152,13 +162,48 @@ export function EmployeeForm({
                     maxLength={2}
                     {...register('country')}
                 />
-                <TextField
-                    id="hireDate"
-                    label="Hire date"
-                    type="date"
-                    error={errors.hireDate?.message}
-                    {...register('hireDate')}
-                />
+                <div className="space-y-2 flex flex-col justify-end">
+                    <Label htmlFor="hireDate">Hire date</Label>
+                    <Popover>
+                        <PopoverTrigger
+                            type="button"
+                            className={cn(
+                                buttonVariants({ variant: 'outline' }),
+                                "w-full justify-start text-left font-normal h-9 px-3 border bg-background/50",
+                                !watch('hireDate') && "text-muted-foreground"
+                            )}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                            {watch('hireDate') ? (
+                                format(new Date(watch('hireDate')), 'PPP')
+                            ) : (
+                                <span>Pick a date</span>
+                            )}
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                mode="single"
+                                selected={watch('hireDate') ? new Date(watch('hireDate')) : undefined}
+                                onSelect={(date) => {
+                                    if (date) {
+                                        const year = date.getFullYear();
+                                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                                        const day = String(date.getDate()).padStart(2, '0');
+                                        setValue('hireDate', `${year}-${month}-${day}`, { shouldValidate: true });
+                                    } else {
+                                        setValue('hireDate', '', { shouldValidate: true });
+                                    }
+                                }}
+                                disabled={(date) =>
+                                    date > new Date() || date < new Date("1900-01-01")
+                                }
+                            />
+                        </PopoverContent>
+                    </Popover>
+                    {errors.hireDate && (
+                        <p className="text-sm text-destructive">{errors.hireDate.message}</p>
+                    )}
+                </div>
                 <div className="space-y-2">
                     <Label>Status</Label>
                     <Select

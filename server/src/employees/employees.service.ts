@@ -21,7 +21,7 @@ export class EmployeesService {
   ) { }
 
   async findAll(query: QueryEmployeesDto): Promise<PaginatedResult<Employee>> {
-    const { page, limit, department, country, status, search } = query;
+    const { page, limit, department, country, status, search, sortBy, sortOrder } = query;
 
     const qb = this.employees
       .createQueryBuilder('e')
@@ -49,8 +49,25 @@ export class EmployeesService {
       );
     }
 
-    qb.orderBy('e.employee_code', 'ASC')
-      .skip((page - 1) * limit)
+    const sortFieldMap: Record<string, string> = {
+      employeeCode: 'e.employee_code',
+      name: 'e.first_name',
+      department: 'e.department',
+      country: 'e.country',
+      status: 'e.employment_status',
+      salary: 's.base_amount',
+    };
+
+    const sortByField = sortFieldMap[sortBy || ''] || 'e.employee_code';
+    const order = (sortOrder || 'asc').toUpperCase() as 'ASC' | 'DESC';
+
+    if (sortBy === 'name') {
+      qb.orderBy('e.first_name', order).addOrderBy('e.last_name', order);
+    } else {
+      qb.orderBy(sortByField, order);
+    }
+
+    qb.skip((page - 1) * limit)
       .take(limit);
 
     const [data, total] = await qb.getManyAndCount();

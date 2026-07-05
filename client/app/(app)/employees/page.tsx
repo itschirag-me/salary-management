@@ -12,7 +12,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Select,
     SelectContent,
@@ -22,9 +22,19 @@ import {
 } from '@/components/ui/select';
 import { employees } from '@/lib/api';
 import { useDebounce } from '@/app/hooks/use-debounce';
-import { formatMoney } from '@/lib/utils';
+import { formatMoney, cn } from '@/lib/utils';
+import { Plus, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from '@/components/ui/pagination';
 
-const LIMIT = 25;
+const LIMIT = 10;
 
 export default function EmployeesPage() {
     const [rows, setRows] = useState<Employee[]>([]);
@@ -37,6 +47,8 @@ export default function EmployeesPage() {
     const [search, setSearch] = useState('');
     const [department, setDepartment] = useState<string>('');
     const [status, setStatus] = useState<string>('');
+    const [sortBy, setSortBy] = useState<'employeeCode' | 'name' | 'department' | 'country' | 'status' | 'salary'>('employeeCode');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
     const debouncedSearch = useDebounce(search);
 
@@ -52,6 +64,8 @@ export default function EmployeesPage() {
                 search: debouncedSearch || undefined,
                 department: department || undefined,
                 status: (status as EmploymentStatus) || undefined,
+                sortBy,
+                sortOrder,
             })
             .then((res) => {
                 if (cancelled) return;
@@ -68,62 +82,92 @@ export default function EmployeesPage() {
         return () => {
             cancelled = true;
         };
-    }, [page, debouncedSearch, department, status]);
+    }, [page, debouncedSearch, department, status, sortBy, sortOrder]);
 
-    // Reset to page 1 whenever a filter changes
+    // Reset to page 1 whenever a filter or sort changes
     useEffect(() => {
         setPage(1);
-    }, [debouncedSearch, department, status]);
+    }, [debouncedSearch, department, status, sortBy, sortOrder]);
+
+    const handleSort = (field: typeof sortBy) => {
+        if (sortBy === field) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(field);
+            setSortOrder('asc');
+        }
+    };
+
+    const renderSortIcon = (field: typeof sortBy) => {
+        if (sortBy !== field) {
+            return <ArrowUpDown className="ml-1.5 h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />;
+        }
+        return sortOrder === 'asc' ? (
+            <ArrowUp className="ml-1.5 h-3.5 w-3.5 text-primary shrink-0" />
+        ) : (
+            <ArrowDown className="ml-1.5 h-3.5 w-3.5 text-primary shrink-0" />
+        );
+    };
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div>
                 <h1 className="text-2xl font-semibold">Employees</h1>
-                <Button>
-                    <Link href="/employees/add">Add employee</Link>
-                </Button>
             </div>
 
-            {/* Filters */}
-            <div className="flex flex-wrap gap-3">
-                <Input
-                    placeholder="Search name, email, or code…"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="max-w-xs"
-                />
-                <Select
-                    value={status}
-                    onValueChange={(v) => setStatus(v === 'all' || !v ? '' : v)}
+            {/* Filters & Add Button */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-1 flex-wrap gap-3">
+                    <Input
+                        placeholder="Search name, email, or code…"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="max-w-xs"
+                    />
+                    <Select
+                        value={status}
+                        onValueChange={(v) => setStatus(v === 'all' || !v ? '' : v)}
+                    >
+                        <SelectTrigger className="w-40">
+                            <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All statuses</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="terminated">Terminated</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Select
+                        value={department}
+                        onValueChange={(v) => setDepartment(v === 'all' || !v ? '' : v)}
+                    >
+                        <SelectTrigger className="w-48">
+                            <SelectValue placeholder="Department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All departments</SelectItem>
+                            <SelectItem value="Engineering">Engineering</SelectItem>
+                            <SelectItem value="Sales">Sales</SelectItem>
+                            <SelectItem value="Marketing">Marketing</SelectItem>
+                            <SelectItem value="Finance">Finance</SelectItem>
+                            <SelectItem value="HR">HR</SelectItem>
+                            <SelectItem value="Operations">Operations</SelectItem>
+                            <SelectItem value="Legal">Legal</SelectItem>
+                            <SelectItem value="Support">Support</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <Link
+                    href="/employees/add"
+                    className={cn(
+                        buttonVariants({ variant: 'default' }),
+                        "flex items-center gap-1.5"
+                    )}
                 >
-                    <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All statuses</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="terminated">Terminated</SelectItem>
-                    </SelectContent>
-                </Select>
-                <Select
-                    value={department}
-                    onValueChange={(v) => setDepartment(v === 'all' || !v ? '' : v)}
-                >
-                    <SelectTrigger className="w-48">
-                        <SelectValue placeholder="Department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All departments</SelectItem>
-                        <SelectItem value="Engineering">Engineering</SelectItem>
-                        <SelectItem value="Sales">Sales</SelectItem>
-                        <SelectItem value="Marketing">Marketing</SelectItem>
-                        <SelectItem value="Finance">Finance</SelectItem>
-                        <SelectItem value="HR">HR</SelectItem>
-                        <SelectItem value="Operations">Operations</SelectItem>
-                        <SelectItem value="Legal">Legal</SelectItem>
-                        <SelectItem value="Support">Support</SelectItem>
-                    </SelectContent>
-                </Select>
+                    <Plus className="h-4 w-4" />
+                    Add employee
+                </Link>
             </div>
 
             {/* Table */}
@@ -131,22 +175,80 @@ export default function EmployeesPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Code</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Department</TableHead>
-                            <TableHead>Country</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Current salary</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead 
+                                className="cursor-pointer select-none hover:text-foreground py-3" 
+                                onClick={() => handleSort('employeeCode')}
+                            >
+                                <div className="flex items-center">
+                                    Code
+                                    {renderSortIcon('employeeCode')}
+                                </div>
+                            </TableHead>
+                            <TableHead 
+                                className="cursor-pointer select-none hover:text-foreground py-3" 
+                                onClick={() => handleSort('name')}
+                            >
+                                <div className="flex items-center">
+                                    Name
+                                    {renderSortIcon('name')}
+                                </div>
+                            </TableHead>
+                            <TableHead 
+                                className="cursor-pointer select-none hover:text-foreground py-3" 
+                                onClick={() => handleSort('department')}
+                            >
+                                <div className="flex items-center">
+                                    Department
+                                    {renderSortIcon('department')}
+                                </div>
+                            </TableHead>
+                            <TableHead 
+                                className="cursor-pointer select-none hover:text-foreground py-3" 
+                                onClick={() => handleSort('country')}
+                            >
+                                <div className="flex items-center">
+                                    Country
+                                    {renderSortIcon('country')}
+                                </div>
+                            </TableHead>
+                            <TableHead 
+                                className="cursor-pointer select-none hover:text-foreground py-3" 
+                                onClick={() => handleSort('status')}
+                            >
+                                <div className="flex items-center">
+                                    Status
+                                    {renderSortIcon('status')}
+                                </div>
+                            </TableHead>
+                            <TableHead 
+                                className="text-right cursor-pointer select-none hover:text-foreground py-3" 
+                                onClick={() => handleSort('salary')}
+                            >
+                                <div className="flex items-center justify-end">
+                                    Current salary
+                                    {renderSortIcon('salary')}
+                                </div>
+                            </TableHead>
+                            <TableHead className="text-right py-3">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {loading ? (
-                            <TableRow>
-                                <TableCell colSpan={7} className="text-center text-muted-foreground">
-                                    Loading…
-                                </TableCell>
-                            </TableRow>
+                            Array.from({ length: LIMIT }).map((_, rowIndex) => (
+                                <TableRow key={`skeleton-${rowIndex}`} className="hover:bg-transparent">
+                                    <TableCell className="py-3"><div className="h-4 w-12 bg-muted animate-pulse rounded" /></TableCell>
+                                    <TableCell className="py-3"><div className="h-4 w-32 bg-muted animate-pulse rounded" /></TableCell>
+                                    <TableCell className="py-3"><div className="h-4 w-24 bg-muted animate-pulse rounded" /></TableCell>
+                                    <TableCell className="py-3"><div className="h-4 w-8 bg-muted animate-pulse rounded" /></TableCell>
+                                    <TableCell className="py-3"><div className="h-4 w-16 bg-muted animate-pulse rounded" /></TableCell>
+                                    <TableCell className="py-3 text-right">
+                                        <div className="h-4 w-20 bg-muted animate-pulse rounded ml-auto" />
+                                    </TableCell>
+                                    <TableCell className="py-3 text-right">
+                                        <div className="h-7 w-12 bg-muted animate-pulse rounded ml-auto" />
+                                    </TableCell>
+                                </TableRow>
+                            ))
                         ) : error ? (
                             <TableRow>
                                 <TableCell colSpan={7} className="text-center text-destructive">
@@ -177,16 +279,15 @@ export default function EmployeesPage() {
                                     <TableCell>{emp.country}</TableCell>
                                     <TableCell>
                                         <span
-                                            className={`capitalize ${
-                                                emp.employmentStatus === 'active'
-                                                    ? 'text-green-600'
-                                                    : 'text-muted-foreground'
-                                            }`}
+                                            className={`capitalize ${emp.employmentStatus === 'active'
+                                                ? 'text-green-600'
+                                                : 'text-muted-foreground'
+                                                }`}
                                         >
                                             {emp.employmentStatus}
                                         </span>
                                     </TableCell>
-                                    <TableCell className="text-right">
+                                    <TableCell className="text-right font-mono">
                                         {emp.currentSalary
                                             ? formatMoney(
                                                 emp.currentSalary.baseAmount,
@@ -210,28 +311,69 @@ export default function EmployeesPage() {
 
             {/* Pagination */}
             {meta && meta.total > 0 && (
-                <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                        Page {meta.page} of {meta.totalPages} · {meta.total} total
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
+                    <span className="text-muted-foreground order-2 sm:order-1">
+                        Showing {(page - 1) * LIMIT + 1} to {Math.min(page * LIMIT, meta.total)} of {meta.total} employees
                     </span>
-                    <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={page <= 1}
-                            onClick={() => setPage((p) => p - 1)}
-                        >
-                            Previous
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={meta.page >= meta.totalPages}
-                            onClick={() => setPage((p) => p + 1)}
-                        >
-                            Next
-                        </Button>
-                    </div>
+                    <Pagination className="w-auto order-1 sm:order-2 mx-0">
+                        <PaginationContent>
+                            <PaginationItem>
+                                <PaginationPrevious
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        if (page > 1) setPage(page - 1);
+                                    }}
+                                    className={page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                />
+                            </PaginationItem>
+
+                            {Array.from({ length: meta.totalPages }, (_, i) => i + 1).map((p) => {
+                                if (
+                                    p === 1 ||
+                                    p === meta.totalPages ||
+                                    (p >= page - 1 && p <= page + 1)
+                                ) {
+                                    return (
+                                        <PaginationItem key={p}>
+                                            <PaginationLink
+                                                href="#"
+                                                isActive={p === page}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    setPage(p);
+                                                }}
+                                                className="cursor-pointer"
+                                            >
+                                                {p}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                    );
+                                }
+
+                                if (p === page - 2 || p === page + 2) {
+                                    return (
+                                        <PaginationItem key={p}>
+                                            <PaginationEllipsis />
+                                        </PaginationItem>
+                                    );
+                                }
+
+                                return null;
+                            })}
+
+                            <PaginationItem>
+                                <PaginationNext
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        if (page < meta.totalPages) setPage(page + 1);
+                                    }}
+                                    className={page >= meta.totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                />
+                            </PaginationItem>
+                        </PaginationContent>
+                    </Pagination>
                 </div>
             )}
         </div>

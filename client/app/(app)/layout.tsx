@@ -58,7 +58,7 @@ export default function AppLayout({
                     </div>
                 </div>
             </header>
-            <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+            <main className="mx-auto max-w-6xl px-4 py-3">{children}</main>
         </div>
     );
 }

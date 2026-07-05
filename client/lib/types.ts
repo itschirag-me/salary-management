@@ -91,6 +91,8 @@ export interface EmployeeQuery {
     country?: string;
     status?: EmploymentStatus;
     search?: string;
+    sortBy?: 'employeeCode' | 'name' | 'department' | 'country' | 'status' | 'salary';
+    sortOrder?: 'asc' | 'desc' | 'ASC' | 'DESC';
 }
 
 export interface OverviewStat {

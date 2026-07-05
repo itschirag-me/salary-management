@@ -70,5 +70,24 @@ export class QueryEmployeesDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiPropertyOptional({
+    description: 'Field to sort employees by',
+    enum: ['employeeCode', 'name', 'department', 'country', 'status', 'salary'],
+    default: 'employeeCode',
+  })
+  @IsOptional()
+  @IsString()
+  sortBy?: string = 'employeeCode';
+
+  @ApiPropertyOptional({
+    description: 'Order of sorting',
+    enum: ['asc', 'desc', 'ASC', 'DESC'],
+    default: 'asc',
+  })
+  @IsOptional()
+  @IsString()
+  @IsEnum(['asc', 'desc', 'ASC', 'DESC'])
+  sortOrder?: 'asc' | 'desc' | 'ASC' | 'DESC' = 'asc';
 }
 
