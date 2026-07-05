@@ -39,12 +39,13 @@ export class AuthController {
     const token = await this.auth.validateAndSign(dto.email, dto.password);
 
     res.cookie('access_token', token, {
-      httpOnly: true, // JS can't read it — XSS can't steal the token
-      secure: this.config.get('COOKIE_SECURE') === 'true', // HTTPS-only in prod
-      sameSite: 'lax', // CSRF mitigation
-      maxAge: 24 * 60 * 60 * 1000, // 1 day, match JWT_EXPIRES_IN
+      httpOnly: true,
+      secure: this.config.get('COOKIE_SECURE') === 'true',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000,
       path: '/',
     });
+
 
     return { message: 'Logged in' };
   }

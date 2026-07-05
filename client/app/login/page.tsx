@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useRouter } from 'next/navigation';
 import { ApiRequestError } from '@/lib/api';
 import {
     Card,
@@ -25,8 +26,15 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-    const { login } = useAuth();
+    const { user, loading, login } = useAuth();
     const [serverError, setServerError] = useState<string | null>(null);
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!loading && user) {
+            router.replace('/employees');
+        }
+    }, [user, loading, router]);
 
     const {
         register,
@@ -48,6 +56,14 @@ export default function LoginPage() {
             }
         }
     };
+
+    if (loading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-muted/40">
+                <p className="text-muted-foreground">Loading…</p>
+            </div>
+        );
+    }
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">

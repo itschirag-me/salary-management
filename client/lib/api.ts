@@ -38,8 +38,15 @@ const client: AxiosInstance = axios.create({
 client.interceptors.response.use(
     (response) => {
         // Return the inner `data` from the success envelope
-        const envelope = response.data as ApiEnvelope<unknown>;
-        response.data = envelope?.data;
+        const envelope = response.data as ApiEnvelope<any>;
+        if (envelope && envelope.meta) {
+            response.data = {
+                data: envelope.data,
+                meta: envelope.meta,
+            };
+        } else {
+            response.data = envelope?.data;
+        }
         return response;
     },
     (error: AxiosError<{ error?: string | string[]; message?: string }>) => {

@@ -80,7 +80,7 @@ export default function EmployeesPage() {
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-semibold">Employees</h1>
                 <Button>
-                    <Link href="/employees/new">Add employee</Link>
+                    <Link href="/employees/add">Add employee</Link>
                 </Button>
             </div>
 
@@ -105,12 +105,25 @@ export default function EmployeesPage() {
                         <SelectItem value="terminated">Terminated</SelectItem>
                     </SelectContent>
                 </Select>
-                <Input
-                    placeholder="Department"
+                <Select
                     value={department}
-                    onChange={(e) => setDepartment(e.target.value)}
-                    className="max-w-xs"
-                />
+                    onValueChange={(v) => setDepartment(v === 'all' || !v ? '' : v)}
+                >
+                    <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All departments</SelectItem>
+                        <SelectItem value="Engineering">Engineering</SelectItem>
+                        <SelectItem value="Sales">Sales</SelectItem>
+                        <SelectItem value="Marketing">Marketing</SelectItem>
+                        <SelectItem value="Finance">Finance</SelectItem>
+                        <SelectItem value="HR">HR</SelectItem>
+                        <SelectItem value="Operations">Operations</SelectItem>
+                        <SelectItem value="Legal">Legal</SelectItem>
+                        <SelectItem value="Support">Support</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
 
             {/* Table */}
@@ -124,29 +137,30 @@ export default function EmployeesPage() {
                             <TableHead>Country</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">Current salary</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                                <TableCell colSpan={7} className="text-center text-muted-foreground">
                                     Loading…
                                 </TableCell>
                             </TableRow>
                         ) : error ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center text-destructive">
+                                <TableCell colSpan={7} className="text-center text-destructive">
                                     {error}
                                 </TableCell>
                             </TableRow>
-                        ) : rows.length === 0 ? (
+                        ) : Array.isArray(rows) && rows.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                                <TableCell colSpan={7} className="text-center text-muted-foreground">
                                     No employees match your filters.
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            rows.map((emp) => (
+                            Array.isArray(rows) && rows.map((emp) => (
                                 <TableRow key={emp.id}>
                                     <TableCell className="font-mono text-xs">
                                         {emp.employeeCode}
@@ -163,11 +177,11 @@ export default function EmployeesPage() {
                                     <TableCell>{emp.country}</TableCell>
                                     <TableCell>
                                         <span
-                                            className={
+                                            className={`capitalize ${
                                                 emp.employmentStatus === 'active'
                                                     ? 'text-green-600'
                                                     : 'text-muted-foreground'
-                                            }
+                                            }`}
                                         >
                                             {emp.employmentStatus}
                                         </span>
@@ -179,6 +193,13 @@ export default function EmployeesPage() {
                                                 emp.currentSalary.currency,
                                             )
                                             : '—'}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="outline" size="sm">
+                                            <Link href={`/employees/${emp.id}/edit`}>
+                                                Edit
+                                            </Link>
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))

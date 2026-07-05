@@ -33,6 +33,7 @@ export default function EmployeeDetailPage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (id === 'add') return;
         let cancelled = false;
         setLoading(true);
         Promise.all([employees.get(id), salaries.history(id)])
@@ -47,6 +48,8 @@ export default function EmployeeDetailPage() {
             cancelled = true;
         };
     }, [id]);
+
+    if (id === 'add') return null;
 
     if (loading) {
         return <p className="text-muted-foreground">Loading…</p>;
@@ -108,7 +111,14 @@ export default function EmployeeDetailPage() {
                     <Field label="Employee code" value={employee.employeeCode} />
                     <Field label="Email" value={employee.email} />
                     <Field label="Country" value={employee.country} />
-                    <Field label="Status" value={employee.employmentStatus} />
+                    <Field 
+                        label="Status" 
+                        value={
+                            employee.employmentStatus
+                                ? employee.employmentStatus.charAt(0).toUpperCase() + employee.employmentStatus.slice(1)
+                                : ''
+                        } 
+                    />
                     <Field label="Hire date" value={employee.hireDate} />
                     <Field
                         label="Current salary"

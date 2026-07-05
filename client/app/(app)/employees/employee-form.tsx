@@ -112,12 +112,32 @@ export function EmployeeForm({
                     error={errors.lastName?.message}
                     {...register('lastName')}
                 />
-                <TextField
-                    id="department"
-                    label="Department"
-                    error={errors.department?.message}
-                    {...register('department')}
-                />
+                <div className="space-y-2">
+                    <Label htmlFor="department">Department</Label>
+                    <Select
+                        value={watch('department')}
+                        onValueChange={(v) =>
+                            v && setValue('department', v)
+                        }
+                    >
+                        <SelectTrigger id="department">
+                            <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Engineering">Engineering</SelectItem>
+                            <SelectItem value="Sales">Sales</SelectItem>
+                            <SelectItem value="Marketing">Marketing</SelectItem>
+                            <SelectItem value="Finance">Finance</SelectItem>
+                            <SelectItem value="HR">HR</SelectItem>
+                            <SelectItem value="Operations">Operations</SelectItem>
+                            <SelectItem value="Legal">Legal</SelectItem>
+                            <SelectItem value="Support">Support</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    {errors.department && (
+                        <p className="text-sm text-destructive">{errors.department.message}</p>
+                    )}
+                </div>
                 <TextField
                     id="jobTitle"
                     label="Job title"

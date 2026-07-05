@@ -41,6 +41,7 @@ export class EmployeesService {
         new Brackets((w) => {
           w.where('e.first_name ILIKE :s')
             .orWhere('e.last_name ILIKE :s')
+            .orWhere("CONCAT(e.first_name, ' ', e.last_name) ILIKE :s")
             .orWhere('e.email ILIKE :s')
             .orWhere('e.employee_code ILIKE :s');
         }),

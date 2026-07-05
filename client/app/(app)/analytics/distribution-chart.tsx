@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts';
 import type { DistributionBucket } from '@/lib/types';
 import {
     type ChartConfig,
@@ -23,10 +23,17 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
+const BAR_COLORS = [
+    '#0d948885', // Teal
+    '#6366f185', // Indigo
+    '#f9731685', // Orange
+    '#ec489985', // Pink
+    '#3b82f685', // Blue
+];
+
 const chartConfig = {
     count: {
         label: 'Employees',
-        color: 'var(--chart-1)',
     },
 } satisfies ChartConfig;
 
@@ -51,9 +58,9 @@ export function DistributionChart({
     );
 
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-base">Salary distribution</CardTitle>
+        <Card className="h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+                <CardTitle className="text-base font-semibold">Salary distribution</CardTitle>
                 {currencies.length > 1 && (
                     <Select value={currency} onValueChange={(val) => val && setCurrency(val)}>
                         <SelectTrigger className="w-28">
@@ -70,9 +77,9 @@ export function DistributionChart({
                 )}
             </CardHeader>
             <CardContent>
-                <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
+                <ChartContainer config={chartConfig} className="h-[240px] w-full">
                     <BarChart accessibilityLayer data={chartData}>
-                        <CartesianGrid vertical={false} />
+                        <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.4} />
                         <XAxis
                             dataKey="bucket"
                             tickLine={false}
@@ -84,13 +91,17 @@ export function DistributionChart({
                             tickLine={false}
                             axisLine={false}
                             allowDecimals={false}
-                            tick={{ fontSize: 12 }}
+                            tick={{ fontSize: 11 }}
                         />
                         <ChartTooltip
-                            cursor={false}
+                            cursor={{ fill: 'var(--muted)', opacity: 0.15 }}
                             content={<ChartTooltipContent />}
                         />
-                        <Bar dataKey="count" fill="var(--color-count)" radius={4} />
+                        <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={45}>
+                            {chartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
+                            ))}
+                        </Bar>
                     </BarChart>
                 </ChartContainer>
             </CardContent>
