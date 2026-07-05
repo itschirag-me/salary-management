@@ -28,7 +28,7 @@ services:
       - DB_PASSWORD=postgres_password
       - DB_DATABASE=salary_management
       - HR_EMAIL=admin@example.com
-      - HR_PASSWORD=admin123
+      - HR_PASSWORD=admin
       - JWT_SECRET=wsdrbvgerwgwdrgwasdrgwergsdvgswdrfghwersdrvgwsr
       - JWT_EXPIRES_IN=1d
       - DATABASE_URL=postgresql://postgres:postgres_password@db:5432/salary_management?schema=public
@@ -41,7 +41,7 @@ services:
       context: ./client
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=http://localhost:5000
+        - NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
     container_name: salary-management-client
     ports:
       - "3000:3000"

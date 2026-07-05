@@ -98,8 +98,8 @@ This builds the server and client images and starts a PostgreSQL instance. Leave
 On first run the database is empty. In a **separate terminal**, apply migrations and seed the data:
 
 ```bash
-docker compose exec server npm run migration:run
-docker compose exec server npm run seed
+docker compose exec server npm run migration:run:prod
+docker compose exec server npm run seed:prod
 ```
 
 Running these **inside the container** (via `docker compose exec`) is the recommended approach — it connects to the database automatically with no host/network configuration. See [Where migration and seed commands connect](#where-migration-and-seed-commands-connect) if you want to understand why, or run them from your host instead.
@@ -141,8 +141,8 @@ Both connect to the **same** database — only the hostname differs. This trips 
 **Recommended — run inside the container.** No host configuration needed, because the command runs in the same Docker network as the database and the compose file already sets `DB_HOST=db` for the server service:
 
 ```bash
-docker compose exec server npm run migration:run
-docker compose exec server npm run seed
+docker compose exec server npm run migration:run:prod
+docker compose exec server npm run seed:prod
 ```
 
 **Alternative — run from your host.** Useful for local development. Set `DB_HOST=localhost` in `server/.env` and make sure the database is up with its port published (`docker compose up -d db`):
@@ -164,22 +164,25 @@ Run these with `docker compose exec server` (container) or from the `server/` di
 | -------------------------------------------------------------- | ----------------------------------------------------- |
 | `npm run migration:generate -- src/database/migrations/<Name>` | Diff entities against the DB and generate a migration |
 | `npm run migration:create -- src/database/migrations/<Name>`   | Create an empty migration to fill by hand             |
-| `npm run migration:run`                                        | Apply all pending migrations                          |
+| `npm run migration:run:prod`                                   | Apply all pending migrations                          |
 | `npm run migration:revert`                                     | Roll back the most recent migration                   |
 
-After changing an entity:
-
-```bash
-docker compose exec server npm run migration:generate -- src/database/migrations/DescribeYourChange
-docker compose exec server npm run migration:run
-```
+After changing an entity, generate the migration on your host machine, then apply it inside the container:
+ 
+ ```bash
+ # On host:
+ cd server && npm run migration:generate -- src/database/migrations/DescribeYourChange
+ 
+ # In container:
+ docker compose exec server npm run migration:run:prod
+ ```
 
 ### Seeding
-
-The seed script inserts 10,000 employees across multiple countries and currencies (fixed random seed for reproducibility), each with one current salary, plus the single HR login user. Re-running truncates and repopulates for a clean, known dataset. It refuses to run when `NODE_ENV=production`.
-
+ 
+The seed script inserts 10,000 employees across multiple countries and currencies (fixed random seed for reproducibility), each populated with a **full salary history (1 to 4 staggered, chronological salary tiers with realistic 5% to 15% raises)**, plus the single HR login user. Re-running truncates and repopulates for a clean, known dataset. Seeding is bypass-enabled in the production container using the `seed:prod` command.
+ 
 ```bash
-docker compose exec server npm run seed
+docker compose exec server npm run seed:prod
 ```
 
 Verify the data landed:
@@ -235,7 +238,8 @@ Runs at [http://localhost:3000](http://localhost:3000).
 
 ## Testing
 
-Unit and e2e tests run from the `server/` directory (or via `docker compose exec server`):
+### Server API Tests
+Unit and e2e tests run from the `server/` directory:
 
 ```bash
 cd server
@@ -243,8 +247,17 @@ npm run test         # unit tests
 npm run test:e2e     # end-to-end tests
 npm run test:cov     # coverage report
 ```
+Server tests focus on core logic — the append-only salary history transaction, employee query/pagination, and the response/error envelope.
 
-Tests focus on core logic — the append-only salary history transaction, employee query/pagination, and the response/error envelope. They are deterministic (fixed seed, fixed dates) and mock the database at the service layer.
+### Client UI Tests
+Unit and component tests run from the `client/` directory using Vitest and React Testing Library:
+
+```bash
+cd client
+bun run test        # run tests once
+bun run test:watch  # run tests in watch mode
+```
+Client tests focus on utility helper formatting (e.g. monetary calculations, classname utilities) and dashboard UI rendering (e.g. total headcount aggregation and geographic breakdowns).
 
 ---
 

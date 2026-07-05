@@ -36,7 +36,7 @@ const TOTAL = 10_000;
 const BATCH = 1_000;
 
 async function seed(): Promise<void> {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_SEED_IN_PRODUCTION !== 'true') {
     throw new Error('Refusing to run seed in production');
   }
 
