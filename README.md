@@ -1,100 +1,266 @@
-# Salary Management System - Setup Guide
+# Salary Management System
 
-This repository contains the configuration and base setup for the Salary Management System, consisting of a Next.js client, NestJS server, and PostgreSQL database.
+Employee salary management software for an organization with ~10,000 employees across multiple countries. Built for an HR-manager persona to manage salary data via a web interface and answer questions about how the organization pays people — replacing a spreadsheet-based workflow.
+
+The system is a monorepo with three parts: a **Next.js** client, a **NestJS** server, and a **PostgreSQL** database.
 
 ---
 
 ## Prerequisites
 
-Before starting, ensure you have the following installed on your machine:
 - **Docker & Docker Compose**
-- **Node.js** (v22 or later recommended for local development)
-- **Bun** (v1.x or later for running the client locally)
-- **pnpm** (v9 or later for running the server locally)
+- **Node.js** v22 or later (ships with npm v10+)
 
 ---
 
-## Directory Structure
+## Project Structure
 
 ```text
-├── client/              # Next.js Frontend (uses Bun)
-│   ├── Dockerfile       # Multi-stage Bun -> Node Alpine Dockerfile
-│   └── ...
-├── server/              # NestJS Backend (uses pnpm)
-│   ├── Dockerfile       # Multi-stage Node Alpine Dockerfile
-│   └── ...
-├── docker-compose.yml   # Multi-service setup linking client, server, and postgres
-└── README.md            # Setup instructions
+.
+├── client/                     # Next.js frontend (App Router)
+│   ├── app/                    # Routes, layout, global styles
+│   ├── public/                 # Static assets
+│   ├── Dockerfile              # Multi-stage Node Alpine build
+│   └── package.json
+│
+├── server/                     # NestJS backend
+│   ├── src/
+│   │   ├── auth/               # JWT auth (httpOnly cookie), guard, strategy
+│   │   │   ├── dto/
+│   │   │   └── user.entity.ts
+│   │   ├── common/
+│   │   │   ├── enums/          # EmploymentStatus, PayFrequency
+│   │   │   ├── filters/        # Global exception filter
+│   │   │   ├── interceptors/   # Response envelope interceptor
+│   │   │   └── pipes/
+│   │   ├── config/             # Env validation (Joi schema)
+│   │   ├── database/
+│   │   │   ├── data-source.ts  # TypeORM DataSource (CLI + runtime)
+│   │   │   ├── migrations/     # Versioned schema changes
+│   │   │   └── seeds/          # 10k-employee seed script
+│   │   ├── employees/          # Employee CRUD + paginated/filtered list
+│   │   │   ├── dto/
+│   │   │   └── entities/
+│   │   ├── salaries/           # Salary history (append-only)
+│   │   │   ├── dto/
+│   │   │   └── entities/
+│   │   ├── app.module.ts
+│   │   └── main.ts
+│   ├── test/                   # e2e tests
+│   ├── Dockerfile              # Multi-stage Node Alpine build
+│   └── package.json
+│
+├── docs/                       # Design artifacts
+│   ├── requirements.md         # One-page requirements (goal, scope, exclusions)
+│   ├── architecture.md         # Stack, data model, module boundaries
+│   ├── design.md               # API contract, flows, testing strategy
+│   └── ai-prompts.md           # AI usage and prompt strategy
+│
+├── docker-compose.yml          # Links client, server, and postgres
+└── README.md
 ```
 
 ---
 
-## Docker Compose Setup (Recommended)
+## Quick Start (Docker Compose)
 
-To run the entire stack (Database, Server, and Client) with a single command:
+Run the entire stack — database, server, and client — with one command:
 
-1. **Start the services:**
-   ```bash
-   docker compose up --build
-   ```
-   This will:
-   - Build the NestJS server image.
-   - Build the Next.js client image, passing the server API URL (`http://localhost:5000`) as a build-time argument.
-   - Spin up a PostgreSQL database instance.
+```bash
+docker compose up --build
+```
 
-2. **Access the services:**
-   - **Frontend Client:** [http://localhost:3000](http://localhost:3000)
-   - **Backend Server:** [http://localhost:5000](http://localhost:5000)
-   - **Database Connection:** `localhost:5432`
+This builds the server and client images and starts a PostgreSQL instance.
 
-3. **Stop the services:**
-   ```bash
-   docker compose down
-   ```
-   *Note: Database data is persisted using a named volume `postgres_data` so your data will persist when stopping the containers.*
+On first run, apply migrations and seed the database in a separate terminal:
+
+```bash
+docker compose exec server npm run migration:run
+docker compose exec server npm run seed
+```
+
+Then access:
+
+- **Client:** [http://localhost:3000](http://localhost:3000)
+- **Server:** [http://localhost:5000](http://localhost:5000)
+- **Database:** `localhost:5432`
+
+Log in with the seeded HR credentials (`HR_EMAIL` / `HR_PASSWORD` from your env).
+
+Stop the stack:
+
+```bash
+docker compose down        # keep data
+docker compose down -v     # wipe the database volume
+```
 
 ---
 
-## Local Development Setup (Manual)
+## Local Development (without Docker)
 
-If you prefer to run services individually outside of Docker:
+### 1. Database
 
-### 1. PostgreSQL Database
-You can run a local PostgreSQL instance on port `5432`. Ensure you create a database named `salary_management` with user `postgres` and password `postgres_password`.
+Start just the database via Docker:
 
-### 2. NestJS Backend Server
-Navigate to the `server` directory, install dependencies using `pnpm`, and run the development server:
+```bash
+docker compose up -d db
+```
+
+Or run your own PostgreSQL on port `5432` with database `salary_management`, user `postgres`, password `postgres_password`.
+
+### 2. Server (NestJS)
+
 ```bash
 cd server
-pnpm install
-pnpm run start:dev
+npm install
+npm run migration:run    # create the schema
+npm run seed             # 10,000 employees + HR user
+npm run start:dev
 ```
-*The server will run at [http://localhost:3000](http://localhost:3000) by default, or you can configure a custom port by defining a `PORT` environment variable (e.g. `PORT=5000`).*
 
-### 3. Next.js Frontend Client
-Navigate to the `client` directory, install dependencies using `bun`, and run the development server:
+Runs at [http://localhost:5000](http://localhost:5000) (set `PORT=5000` in `server/.env`).
+
+### 3. Client (Next.js)
+
 ```bash
 cd client
-bun install
-bun run dev
+npm install
+npm run dev
 ```
-*The client will run at [http://localhost:3000](http://localhost:3000). If you want to direct api traffic to a non-default server port, configure the server URL in your `.env` or during compilation.*
+
+Runs at [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## Environment Variables & Configuration
+## Database Migrations & Seeding
 
-### Database Credentials (Docker Setup)
-- **Host:** `db` (inside container) / `localhost` (external)
-- **Port:** `5432`
-- **Username:** `postgres`
-- **Password:** `postgres_password`
-- **Database:** `salary_management`
-- **Connection URI:** `postgresql://postgres:postgres_password@db:5432/salary_management?schema=public`
+Schema is owned by TypeORM migrations — `synchronize` is disabled, so nothing auto-alters the database. Run these from the `server/` directory.
 
-### Server Configuration (Docker Setup)
-- **Port:** `5000`
+> When running against the Dockerized database from your host, set `DB_HOST=localhost` in `server/.env`. Inside the container the host is `db`.
 
-### Client Configuration (Docker Setup)
-- **Port:** `3000`
-- **NEXT_PUBLIC_API_URL:** `http://localhost:5000` (Build Argument)
+### Migration commands
+
+| Command                                                        | Purpose                                               |
+| -------------------------------------------------------------- | ----------------------------------------------------- |
+| `npm run migration:generate -- src/database/migrations/<Name>` | Diff entities against the DB and generate a migration |
+| `npm run migration:create -- src/database/migrations/<Name>`   | Create an empty migration to fill by hand             |
+| `npm run migration:run`                                        | Apply all pending migrations                          |
+| `npm run migration:revert`                                     | Roll back the most recent migration                   |
+
+After changing an entity:
+
+```bash
+npm run migration:generate -- src/database/migrations/DescribeYourChange
+npm run migration:run
+```
+
+### Seeding
+
+The seed script inserts 10,000 employees across multiple countries and currencies (fixed random seed for reproducibility), each with one current salary, plus the single HR login user. Re-running truncates and repopulates for a clean, known dataset. It refuses to run when `NODE_ENV=production`.
+
+```bash
+npm run seed
+```
+
+Verify:
+
+```bash
+docker compose exec db psql -U postgres -d salary_management \
+  -c "SELECT COUNT(*) FROM employees;"
+```
+
+---
+
+## Testing
+
+Unit and e2e tests run from the `server/` directory:
+
+```bash
+cd server
+npm run test         # unit tests
+npm run test:e2e     # end-to-end tests
+npm run test:cov     # coverage report
+```
+
+Tests focus on core logic — the append-only salary history transaction, employee query/pagination, and the response/error envelope. They are deterministic (fixed seed, fixed dates) and mock the database at the service layer.
+
+---
+
+## Environment Variables
+
+The server validates its environment on startup (Joi) and refuses to boot if required variables are missing or malformed.
+
+### `server/.env`
+
+```dotenv
+# Server
+PORT=5000
+
+# Database — "localhost" for host-run commands, "db" inside Docker
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=postgres_password
+DB_DATABASE=salary_management
+
+# Auth
+JWT_SECRET=change-me-to-a-long-random-string-min-32-chars
+JWT_EXPIRES_IN=1d
+
+# Frontend origin (CORS + cookie)
+FRONTEND_URL=http://localhost:3000
+
+# Seeded HR login credentials
+HR_EMAIL=hr@acme.example
+HR_PASSWORD=changeme123
+
+# true in production (HTTPS-only cookie)
+COOKIE_SECURE=false
+```
+
+### `client/.env`
+
+```dotenv
+NEXT_PUBLIC_API_URL=http://localhost:5000
+```
+
+### Docker networking
+
+Inside Compose, the server reaches the database at host `db` (the service name); the Compose config sets `DB_HOST=db` for the server service. From your host — running migrations or seeds directly — the database is at `localhost:5432`, so keep `DB_HOST=localhost` in your `.env` for those commands.
+
+---
+
+## Architecture Overview
+
+```
+┌──────────────────┐   HTTP/JSON    ┌──────────────────┐    TCP    ┌──────────────┐
+│  Next.js client  │ ─────────────> │  NestJS REST API │ ───────>  │  PostgreSQL  │
+│  (App Router)    │ <───────────── │  (Node 22)       │ <───────  │  + TypeORM   │
+└──────────────────┘                └──────────────────┘           └──────────────┘
+```
+
+Key decisions (see `docs/` for full reasoning):
+
+- **PostgreSQL over SQLite** — real `NUMERIC` money types, aggregation performance, concurrent edits.
+- **Append-only salary history** — a salary change inserts a new row and closes the previous one in a single transaction; pay history is never overwritten.
+- **Aggregation in SQL, grouped by currency** — averages/min/max computed in Postgres, never by loading rows into Node, and never mixing currencies into one number.
+- **Auth scoped to one persona** — JWT in an httpOnly cookie, global route guard. Multi-user and RBAC are deliberately out of scope.
+
+---
+
+## Authentication
+
+- Log in with the seeded `HR_EMAIL` / `HR_PASSWORD`.
+- The JWT is stored in an **httpOnly cookie** (not readable by JavaScript), closing the XSS token-theft surface.
+- All API routes are protected by a global guard except `/auth/login` and `/auth/logout`.
+
+---
+
+## Documentation
+
+The `docs/` directory contains the design artifacts behind this build:
+
+- **requirements.md** — goal, scope, features, and deliberate exclusions.
+- **architecture.md** — system design, data model, and scaling considerations.
+- **design.md** — API contract, key flows, and testing strategy.
+- **ai-prompts.md** — how AI tools were used, with example prompts.
