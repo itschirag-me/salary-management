@@ -1,44 +1,28 @@
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  Body,
-  Patch,
   Param,
-  Delete,
+  ParseUUIDPipe,
+  Post,
 } from '@nestjs/common';
 import { SalariesService } from './salaries.service';
 import { CreateSalaryDto } from './dto/create-salary.dto';
-import { UpdateSalaryDto } from './dto/update-salary.dto';
-import { ApiTags } from '@nestjs/swagger';
 
-@ApiTags('Salaries')
-@Controller('salaries')
+@Controller('employees/:employeeId/salaries')
 export class SalariesController {
-  constructor(private readonly salariesService: SalariesService) {}
-
-  @Post()
-  create(@Body() createSalaryDto: CreateSalaryDto) {
-    return this.salariesService.create(createSalaryDto);
-  }
+  constructor(private readonly salariesService: SalariesService) { }
 
   @Get()
-  findAll() {
-    return this.salariesService.findAll();
+  findHistory(@Param('employeeId', ParseUUIDPipe) employeeId: string) {
+    return this.salariesService.findHistory(employeeId);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.salariesService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateSalaryDto: UpdateSalaryDto) {
-    return this.salariesService.update(+id, updateSalaryDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.salariesService.remove(+id);
+  @Post()
+  recordSalary(
+    @Param('employeeId', ParseUUIDPipe) employeeId: string,
+    @Body() dto: CreateSalaryDto,
+  ) {
+    return this.salariesService.recordSalary(employeeId, dto);
   }
 }
