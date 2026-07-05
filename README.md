@@ -8,7 +8,26 @@ The system is a monorepo with three parts: a **Next.js** client, a **NestJS** se
 
 ## Prerequisites
 
-- **Docker & Docker Compose**
+You need Docker and Docker Compose installed. Everything else (Node, Postgres) runs inside containers, so you do **not** need to install them separately to run the app via Docker.
+
+### Install Docker & Docker Compose
+
+- **macOS / Windows:** Install [Docker Desktop](https://www.docker.com/products/docker-desktop/). It bundles both Docker Engine and Docker Compose. After installing, launch Docker Desktop and wait until it reports "running".
+- **Linux:** Install [Docker Engine](https://docs.docker.com/engine/install/) and the [Compose plugin](https://docs.docker.com/compose/install/linux/) for your distribution.
+
+Verify the installation:
+
+```bash
+docker --version
+docker compose version
+```
+
+Both commands should print a version number. If `docker compose version` fails but `docker-compose --version` works, you have the older standalone Compose — use `docker-compose` in place of `docker compose` throughout this guide.
+
+### Optional: for local development without Docker
+
+Only needed if you want to run the client or server directly on your machine (see [Local Development](#local-development-without-docker)):
+
 - **Node.js** v22 or later (ships with npm v10+)
 
 ---
@@ -64,43 +83,123 @@ The system is a monorepo with three parts: a **Next.js** client, a **NestJS** se
 
 ## Quick Start (Docker Compose)
 
-Run the entire stack — database, server, and client — with one command:
+This is the recommended way to run everything. Make sure Docker Desktop (or the Docker daemon on Linux) is running first.
+
+### 1. Start the stack
 
 ```bash
 docker compose up --build
 ```
 
-This builds the server and client images and starts a PostgreSQL instance.
+This builds the server and client images and starts a PostgreSQL instance. Leave this terminal running — it streams logs from all three services.
 
-On first run, apply migrations and seed the database in a separate terminal:
+### 2. Set up the database
+
+On first run the database is empty. In a **separate terminal**, apply migrations and seed the data:
 
 ```bash
 docker compose exec server npm run migration:run
 docker compose exec server npm run seed
 ```
 
-Then access:
+Running these **inside the container** (via `docker compose exec`) is the recommended approach — it connects to the database automatically with no host/network configuration. See [Where migration and seed commands connect](#where-migration-and-seed-commands-connect) if you want to understand why, or run them from your host instead.
+
+### 3. Open the app
 
 - **Client:** [http://localhost:3000](http://localhost:3000)
 - **Server:** [http://localhost:5000](http://localhost:5000)
 - **Database:** `localhost:5432`
 
-Log in with the seeded HR credentials (`HR_EMAIL` / `HR_PASSWORD` from your env).
+Log in with the seeded HR credentials (`HR_EMAIL` / `HR_PASSWORD` from your env — defaults are in the [Environment Variables](#environment-variables) section).
 
-Stop the stack:
+### 4. Stop the stack
 
 ```bash
-docker compose down        # keep data
-docker compose down -v     # wipe the database volume
+docker compose down        # stop, keep data
+docker compose down -v     # stop and wipe the database volume
 ```
+
+Data persists in a named volume between runs, so you only need to seed once unless you wipe with `-v`.
+
+---
+
+## Database Migrations & Seeding
+
+Schema is owned by TypeORM migrations — `synchronize` is disabled, so nothing auto-alters the database. The seed script populates the demo dataset separately.
+
+### Where migration and seed commands connect
+
+There is only **one** database (the Postgres container). But the address used to reach it depends on **where you run the command from**:
+
+| Where you run it                                      | Reaches Postgres at | Requires `DB_HOST` = |
+| ----------------------------------------------------- | ------------------- | -------------------- |
+| Inside the container (`docker compose exec server …`) | `db`                | `db`                 |
+| On your host machine (`cd server && npm run …`)       | `localhost`         | `localhost`          |
+
+Both connect to the **same** database — only the hostname differs. This trips people up: there is no separate "inner" and "outer" database, just two addresses for the same one.
+
+**Recommended — run inside the container.** No host configuration needed, because the command runs in the same Docker network as the database and the compose file already sets `DB_HOST=db` for the server service:
+
+```bash
+docker compose exec server npm run migration:run
+docker compose exec server npm run seed
+```
+
+**Alternative — run from your host.** Useful for local development. Set `DB_HOST=localhost` in `server/.env` and make sure the database is up with its port published (`docker compose up -d db`):
+
+```bash
+cd server
+npm install
+npm run migration:run
+npm run seed
+```
+
+> **Common error:** `getaddrinfo ENOTFOUND db` means a command running on your host is trying to use `DB_HOST=db`. Fix it by either running the command inside the container (recommended) or setting `DB_HOST=localhost` in `server/.env` for host-run commands.
+
+### Migration commands
+
+Run these with `docker compose exec server` (container) or from the `server/` directory (host):
+
+| Command                                                        | Purpose                                               |
+| -------------------------------------------------------------- | ----------------------------------------------------- |
+| `npm run migration:generate -- src/database/migrations/<Name>` | Diff entities against the DB and generate a migration |
+| `npm run migration:create -- src/database/migrations/<Name>`   | Create an empty migration to fill by hand             |
+| `npm run migration:run`                                        | Apply all pending migrations                          |
+| `npm run migration:revert`                                     | Roll back the most recent migration                   |
+
+After changing an entity:
+
+```bash
+docker compose exec server npm run migration:generate -- src/database/migrations/DescribeYourChange
+docker compose exec server npm run migration:run
+```
+
+### Seeding
+
+The seed script inserts 10,000 employees across multiple countries and currencies (fixed random seed for reproducibility), each with one current salary, plus the single HR login user. Re-running truncates and repopulates for a clean, known dataset. It refuses to run when `NODE_ENV=production`.
+
+```bash
+docker compose exec server npm run seed
+```
+
+Verify the data landed:
+
+```bash
+docker compose exec db psql -U postgres -d salary_management \
+  -c "SELECT COUNT(*) FROM employees;"
+```
+
+You should see 10000.
 
 ---
 
 ## Local Development (without Docker)
 
+If you prefer to run the client and server directly on your machine (with only the database in Docker), you need Node.js v22+ installed.
+
 ### 1. Database
 
-Start just the database via Docker:
+Start just the database in Docker:
 
 ```bash
 docker compose up -d db
@@ -109,6 +208,8 @@ docker compose up -d db
 Or run your own PostgreSQL on port `5432` with database `salary_management`, user `postgres`, password `postgres_password`.
 
 ### 2. Server (NestJS)
+
+Set `DB_HOST=localhost` in `server/.env` (host-run commands reach the DB at localhost — see the table above), then:
 
 ```bash
 cd server
@@ -132,48 +233,9 @@ Runs at [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## Database Migrations & Seeding
-
-Schema is owned by TypeORM migrations — `synchronize` is disabled, so nothing auto-alters the database. Run these from the `server/` directory.
-
-> When running against the Dockerized database from your host, set `DB_HOST=localhost` in `server/.env`. Inside the container the host is `db`.
-
-### Migration commands
-
-| Command                                                        | Purpose                                               |
-| -------------------------------------------------------------- | ----------------------------------------------------- |
-| `npm run migration:generate -- src/database/migrations/<Name>` | Diff entities against the DB and generate a migration |
-| `npm run migration:create -- src/database/migrations/<Name>`   | Create an empty migration to fill by hand             |
-| `npm run migration:run`                                        | Apply all pending migrations                          |
-| `npm run migration:revert`                                     | Roll back the most recent migration                   |
-
-After changing an entity:
-
-```bash
-npm run migration:generate -- src/database/migrations/DescribeYourChange
-npm run migration:run
-```
-
-### Seeding
-
-The seed script inserts 10,000 employees across multiple countries and currencies (fixed random seed for reproducibility), each with one current salary, plus the single HR login user. Re-running truncates and repopulates for a clean, known dataset. It refuses to run when `NODE_ENV=production`.
-
-```bash
-npm run seed
-```
-
-Verify:
-
-```bash
-docker compose exec db psql -U postgres -d salary_management \
-  -c "SELECT COUNT(*) FROM employees;"
-```
-
----
-
 ## Testing
 
-Unit and e2e tests run from the `server/` directory:
+Unit and e2e tests run from the `server/` directory (or via `docker compose exec server`):
 
 ```bash
 cd server
@@ -226,7 +288,7 @@ NEXT_PUBLIC_API_URL=http://localhost:5000
 
 ### Docker networking
 
-Inside Compose, the server reaches the database at host `db` (the service name); the Compose config sets `DB_HOST=db` for the server service. From your host — running migrations or seeds directly — the database is at `localhost:5432`, so keep `DB_HOST=localhost` in your `.env` for those commands.
+Inside Compose, the server reaches the database at host `db` (the service name); the compose config sets `DB_HOST=db` for the server service, overriding your `.env`. From your host — running migrations or seeds directly — the database is at `localhost:5432`, so keep `DB_HOST=localhost` in your `.env` for host-run commands.
 
 ---
 
