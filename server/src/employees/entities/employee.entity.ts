@@ -1,6 +1,3 @@
-// src/employees/employee.entity.ts
-import { EmploymentStatus } from 'src/common/enums/employment-status.enum';
-import { Salary } from 'src/salaries/entities/salary.entity';
 import {
   Column,
   CreateDateColumn,
@@ -10,6 +7,8 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { EmploymentStatus } from '../../common/enums/employment-status.enum';
+import { Salary } from '../../salaries/entities/salary.entity';
 
 @Entity('employees')
 export class Employee {

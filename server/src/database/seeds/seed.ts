@@ -3,8 +3,10 @@ import { faker } from '@faker-js/faker';
 import { AppDataSource } from '../data-source';
 import { EmploymentStatus } from '../../common/enums/employment-status.enum';
 import { PayFrequency } from '../../common/enums/pay-frequency.enum';
-import { Employee } from 'src/employees/entities/employee.entity';
-import { Salary } from 'src/salaries/entities/salary.entity';
+import { Salary } from '../../salaries/entities/salary.entity';
+import { Employee } from '../../employees/entities/employee.entity';
+import * as bcrypt from 'bcrypt';
+import { User } from '../../auth/user.entity';
 
 faker.seed(42);
 
@@ -90,6 +92,13 @@ async function seed(): Promise<void> {
         effectiveTo: null, // null = current salary
         payFrequency: PayFrequency.ANNUAL,
       };
+    });
+
+    const userRepo = AppDataSource.getRepository(User);
+    await userRepo.query('TRUNCATE "users" RESTART IDENTITY CASCADE');
+    await userRepo.insert({
+      email: process.env.HR_EMAIL!,
+      passwordHash: await bcrypt.hash(process.env.HR_PASSWORD!, 10),
     });
 
     await salaryRepo.insert(salaries);

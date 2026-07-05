@@ -6,7 +6,7 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
-import { EmploymentStatus } from 'src/common/enums/employment-status.enum';
+import { EmploymentStatus } from '../../common/enums/employment-status.enum';
 
 export class CreateEmployeeDto {
   @IsString()

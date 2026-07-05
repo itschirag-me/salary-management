@@ -1,5 +1,3 @@
-import { PayFrequency } from 'src/common/enums/pay-frequency.enum';
-import { Employee } from 'src/employees/entities/employee.entity';
 import {
   Column,
   CreateDateColumn,
@@ -9,6 +7,8 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { PayFrequency } from '../../common/enums/pay-frequency.enum';
+import { Employee } from '../../employees/entities/employee.entity';
 
 @Index('idx_salary_employee_effective', ['employeeId', 'effectiveFrom'])
 @Entity('salaries')
