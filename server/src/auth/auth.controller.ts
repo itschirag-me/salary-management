@@ -1,12 +1,13 @@
-import { Body, Controller, HttpCode, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Req, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Response } from 'express';
+import type { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import { Public } from './public.decorator';
 import { LoginDto } from './dto/login.dto';
 import { ApiTags, ApiOperation, ApiOkResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { LoginResponseDto, LogoutResponseDto } from './dto/auth-responses.dto';
 import { ErrorResponseDto } from '../common/dto/error-response.dto';
+import { JwtPayload } from './jwt.strategy';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -62,5 +63,12 @@ export class AuthController {
   logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('access_token', { path: '/' });
     return { message: 'Logged out' };
+  }
+
+  @Get('me')
+  me(@Req() req: Request) {
+    // req.user is populated by JwtStrategy.validate()
+    const user = req.user as JwtPayload;
+    return { id: user.sub, email: user.email };
   }
 }

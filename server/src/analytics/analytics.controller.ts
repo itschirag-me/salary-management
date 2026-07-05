@@ -7,7 +7,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AnalyticsService } from './analytics.service';
-import { OverviewStatDto, GroupStatDto } from './dto/analytics-responses.dto';
+import { OverviewStatDto, GroupStatDto, DistributionBucketDto } from './dto/analytics-responses.dto';
 import { ErrorResponseDto } from '../common/dto/error-response.dto';
 
 @ApiTags('Analytics')
@@ -57,5 +57,19 @@ export class AnalyticsController {
   })
   byDepartment() {
     return this.analyticsService.byDepartment();
+  }
+
+  @Get('distribution')
+  @ApiOperation({
+    summary: 'Retrieve salary distribution',
+    description:
+      'Buckets current active salaries into fixed-width bands, grouped by payment currency, for histogram display.',
+  })
+  @ApiOkResponse({
+    type: [DistributionBucketDto],
+    description: 'Successfully computed salary distribution buckets.',
+  })
+  distribution() {
+    return this.analyticsService.distribution();
   }
 }

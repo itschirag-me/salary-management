@@ -33,3 +33,17 @@ export class GroupStatDto {
   @ApiProperty({ example: '1200000.00', description: 'Maximum active base salary in this group' })
   maxSalary!: string;
 }
+
+export class DistributionBucketDto {
+  @ApiProperty({ example: 'USD', description: 'Three-letter currency code (ISO 4217)' })
+  currency!: string;
+
+  @ApiProperty({ example: '50k–100k', description: 'Salary band label for this bucket' })
+  bucket!: string;
+
+  @ApiProperty({ example: 50000, description: 'Lower bound of the salary band' })
+  lowerBound!: number;
+
+  @ApiProperty({ example: 145, description: 'Number of employees in this band' })
+  count!: number;
+}
