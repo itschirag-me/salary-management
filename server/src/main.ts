@@ -32,10 +32,22 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionsFilter());
 
   const config = new DocumentBuilder()
-    .setTitle('ACME HRMS')
-    .setDescription('ACME HRMS Description')
+    .setTitle('ACME Salary Management & HRMS API')
+    .setDescription(
+      'Detailed API documentation for the ACME HRMS, including employee records, salary history management, analytics reporting, and JWT authentication.',
+    )
     .setVersion('1.0')
-    .addTag('HRMS')
+    .addCookieAuth('access_token', {
+      type: 'apiKey',
+      in: 'cookie',
+      name: 'access_token',
+      description: 'JWT access token stored in httpOnly cookie access_token',
+    })
+    .addTag('Auth', 'Authentication endpoints (login, logout)')
+    .addTag('Employees', 'Employee profile and record management')
+    .addTag('Salaries', 'Employee salary history tracking and logging')
+    .addTag('Analytics', 'Organizational analytics (headcount, payroll aggregates)')
+    .addTag('System', 'System-level endpoints (health checks)')
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);
