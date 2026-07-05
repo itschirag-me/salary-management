@@ -15,7 +15,6 @@ export function formatMoney(amount: string, currency: string): string {
       maximumFractionDigits: 0,
     }).format(value);
   } catch {
-    // Unknown currency code → fall back to plain number + code
     return `${value.toLocaleString()} ${currency}`;
   }
 }
