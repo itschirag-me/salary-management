@@ -43,13 +43,21 @@ async function seed(): Promise<void> {
   await AppDataSource.initialize();
   const employeeRepo = AppDataSource.getRepository(Employee);
   const salaryRepo = AppDataSource.getRepository(Salary);
+  const userRepo = AppDataSource.getRepository(User);
 
   console.log('Truncating tables...');
   await salaryRepo.query(
     'TRUNCATE "salaries", "employees" RESTART IDENTITY CASCADE',
   );
+  await userRepo.query('TRUNCATE "users" RESTART IDENTITY CASCADE');
 
-  console.log(`Seeding ${TOTAL} employees in batches of ${BATCH}...`);
+  console.log('Seeding HR user...');
+  await userRepo.insert({
+    email: process.env.HR_EMAIL!,
+    passwordHash: await bcrypt.hash(process.env.HR_PASSWORD!, 10),
+  });
+
+  console.log(`Seeding ${TOTAL} employees in batches of ${BATCH} with full salary histories...`);
 
   for (let offset = 0; offset < TOTAL; offset += BATCH) {
     const employees: Partial<Employee>[] = [];
@@ -64,7 +72,6 @@ async function seed(): Promise<void> {
         employeeCode: `E${String(n).padStart(6, '0')}`,
         firstName,
         lastName,
-        // Deterministic, unique email — avoids faker collisions across 10k rows
         email: `${firstName}.${lastName}.${n}@acme.example`.toLowerCase(),
         department: faker.helpers.arrayElement(DEPARTMENTS),
         jobTitle: faker.person.jobTitle(),
@@ -74,31 +81,60 @@ async function seed(): Promise<void> {
       });
     }
 
-    // Batch insert — returns generated UUIDs in order
+    // Batch insert employees — returns generated UUIDs in order
     const result = await employeeRepo.insert(employees);
 
-    // One current salary per employee, in their country's currency
-    const salaries: Partial<Salary>[] = result.identifiers.map((idRow, i) => {
+    // Generate multiple historical salary records per employee
+    const salaries: Partial<Salary>[] = [];
+
+    result.identifiers.forEach((idRow, i) => {
       const emp = employees[i];
       const country = COUNTRIES.find((c) => c.code === emp.country)!;
-      const variance = faker.number.float({ min: 0.7, max: 1.9 });
+      const employeeId = idRow.id as string;
+      const hireDate = emp.hireDate!;
 
-      return {
-        employeeId: idRow.id as string,
-        // NUMERIC → string, fixed to 2 decimals
-        baseAmount: (country.base * variance).toFixed(2),
-        currency: country.currency,
-        effectiveFrom: emp.hireDate,
-        effectiveTo: null, // null = current salary
-        payFrequency: PayFrequency.ANNUAL,
-      };
-    });
+      const now = new Date();
+      const yearsDiff = (now.getTime() - hireDate.getTime()) / (1000 * 60 * 60 * 24 * 365);
 
-    const userRepo = AppDataSource.getRepository(User);
-    await userRepo.query('TRUNCATE "users" RESTART IDENTITY CASCADE');
-    await userRepo.insert({
-      email: process.env.HR_EMAIL!,
-      passwordHash: await bcrypt.hash(process.env.HR_PASSWORD!, 10),
+      // Determine number of revisions: 1 if hired recently (< 1 year), up to 4 if hired long ago (> 3 years)
+      const maxRevisions = Math.min(4, Math.max(1, Math.floor(yearsDiff)));
+      const numRevisions = faker.number.int({ min: 1, max: maxRevisions });
+
+      // Start with a base amount based on country average and variance
+      const variance = faker.number.float({ min: 0.6, max: 1.2 });
+      let currentAmount = country.base * variance;
+      let currentFromDate = new Date(hireDate);
+
+      for (let j = 0; j < numRevisions; j++) {
+        const isLast = j === numRevisions - 1;
+        let currentToDate: Date | null = null;
+
+        if (!isLast) {
+          // Stagger dates in equal intervals based on yearsDiff
+          const intervalDays = (yearsDiff * 365) / numRevisions;
+          const nextDate = new Date(hireDate.getTime() + (j + 1) * intervalDays * 24 * 60 * 60 * 1000);
+          
+          if (nextDate < now) {
+            currentToDate = nextDate;
+          }
+        }
+
+        salaries.push({
+          employeeId,
+          baseAmount: currentAmount.toFixed(2),
+          currency: country.currency,
+          effectiveFrom: currentFromDate,
+          effectiveTo: currentToDate,
+          payFrequency: PayFrequency.ANNUAL,
+        });
+
+        if (!isLast && currentToDate) {
+          // Next tier starts the next day
+          currentFromDate = new Date(currentToDate.getTime() + 24 * 60 * 60 * 1000);
+          // Give them a 5% to 15% raise
+          currentAmount = currentAmount * faker.number.float({ min: 1.05, max: 1.15 });
+        }
+      }
     });
 
     await salaryRepo.insert(salaries);
