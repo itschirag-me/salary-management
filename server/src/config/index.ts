@@ -31,7 +31,7 @@ export const validationSchema = Joi.object({
   [Env.FRONTEND_URL]: Joi.string().uri().default('http://localhost:3000'),
 
   [Env.HR_EMAIL]: Joi.string().email().required(),
-  [Env.HR_PASSWORD]: Joi.string().min(8).required(),
+  [Env.HR_PASSWORD]: Joi.string().min(5).required(),
 
   [Env.COOKIE_SECURE]: Joi.boolean().default(false),
 });
