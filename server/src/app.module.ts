@@ -10,12 +10,14 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema: validationSchema,
+      validationOptions: { abortEarly: false },
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
@@ -38,6 +40,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     EmployeesModule,
     SalariesModule,
     AuthModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [
@@ -46,4 +49,4 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
 })
-export class AppModule {}
+export class AppModule { }
